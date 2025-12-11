@@ -226,6 +226,7 @@
 
         .card-body {
           color: #555;
+          overflow-x: auto;
         }
 
         .card-row {
@@ -305,6 +306,36 @@
           background: #f8f9fa;
           border-radius: 8px;
           font-size: 0.85rem;
+        }
+
+        /* Table Styles */
+        .result-table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-top: 10px;
+        }
+
+        .result-table th {
+          background-color: var(--primary-color);
+          color: white;
+          padding: 12px;
+          text-align: right;
+          font-weight: 600;
+          border: 1px solid #ddd;
+        }
+
+        .result-table td {
+          padding: 10px;
+          border: 1px solid #ddd;
+          text-align: right;
+        }
+
+        .result-table tr:nth-child(even) {
+          background-color: #f9f9f9;
+        }
+
+        .result-table tr:hover {
+          background-color: #f5f5f5;
         }
 
         /* Tablet and Desktop Styles */
@@ -427,7 +458,7 @@
         try {
             // Search both APIs simultaneously
             const [site1Results, site2Results] = await Promise.all([
-                searchSite1(searchInput),
+                searchNewSite(searchInput),
                 searchSite2(searchInput)
             ]);
 
@@ -445,10 +476,27 @@
         }
     });
 
-    // Search first site (mobile number search)
-    async function searchSite1(searchInput) {
+    // Search new site (minahilsimtracker.com)
+    async function searchNewSite(searchInput) {
         try {
-            const response = await fetch(`https://simsownerdetails.com/wp-content/plugins/livetrackers-plugin-old-working/search.php?type=mobile&search=${searchInput}`);
+            const formData = new URLSearchParams();
+            formData.append('number', searchInput);
+            formData.append('search', '');
+
+            const response = await fetch('https://minahilsimtracker.com/result.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+                    'Sec-Fetch-Dest': 'document',
+                    'Sec-Fetch-Mode': 'navigate',
+                    'Sec-Fetch-Site': 'same-origin',
+                    'Sec-Fetch-User': '?1',
+                    'Upgrade-Insecure-Requests': '1'
+                },
+                body: formData.toString(),
+                credentials: 'include'
+            });
 
             if (!response.ok) {
                 throw new Error(`API request failed with status ${response.status}`);
@@ -459,31 +507,39 @@
             // Parse the HTML response and extract data
             const parser = new DOMParser();
             const doc = parser.parseFromString(html, 'text/html');
-            const rows = doc.querySelectorAll('tbody tr');
+            const rows = doc.querySelectorAll('table.table tbody tr');
 
             if (rows.length === 0) {
-                return { success: false, data: [] };
+                return { success: false, data: [], message: "No results found" };
             }
 
             const results = [];
             rows.forEach(row => {
                 const cells = row.querySelectorAll('td');
-                const number = cells[0]?.textContent || '-';
-                const name = cells[1]?.textContent || '-';
-                const cnic = cells[2]?.textContent || '-';
-                const address = cells[3]?.textContent || '-';
+                if (cells.length >= 5) {
+                    const number = cells[0]?.textContent || '-';
+                    const name = cells[1]?.textContent || '-';
+                    const cnic = cells[2]?.textContent || '-';
+                    const address = cells[3]?.textContent || '-';
+                    const network = cells[4]?.querySelector('img')?.alt || '-';
 
-                results.push({
-                    number,
-                    name,
-                    cnic,
-                    address
-                });
+                    results.push({
+                        number: number.trim(),
+                        name: name.trim(),
+                        cnic: cnic.trim(),
+                        address: address.trim(),
+                        network: network.trim()
+                    });
+                }
             });
 
-            return { success: true, data: results };
+            return { 
+                success: results.length > 0, 
+                data: results,
+                message: results.length > 0 ? "Results found" : "No results"
+            };
         } catch (error) {
-            console.error('Error searching site 1:', error);
+            console.error('Error searching new site:', error);
             return { success: false, error: error.message, data: [] };
         }
     }
@@ -545,7 +601,7 @@
         const cardsContainer = document.createElement('div');
         cardsContainer.className = 'cards-container';
 
-        // Site 1 Results Card
+        // Site 1 Results Card (New Site)
         const site1Card = createResultCard(
             'موبائل نمبر سرچ',
             site1Results.success,
@@ -555,7 +611,7 @@
         );
         cardsContainer.appendChild(site1Card);
 
-        // Site 2 Results Card
+        // Site 2 Results Card (CNIC Search)
         const site2Card = createResultCard(
             'شناختی کارڈ سرچ',
             site2Results.success,
@@ -591,30 +647,66 @@
 
         if (success && data.length > 0) {
             if (siteType === 'site1') {
-                // Display mobile number search results
+                // Create table for mobile number search results
+                const table = document.createElement('table');
+                table.className = 'result-table';
+                
+                // Create table header with merged columns
+                const thead = document.createElement('thead');
+                const headerRow = document.createElement('tr');
+                
+                // Merged header: Number, Name, CNIC, Address
+                const mergedHeader = document.createElement('th');
+                mergedHeader.colSpan = 4;
+                mergedHeader.textContent = 'تفصیلات';
+                headerRow.appendChild(mergedHeader);
+                
+                // Network column
+                const networkHeader = document.createElement('th');
+                networkHeader.textContent = 'نیٹ ورک';
+                headerRow.appendChild(networkHeader);
+                
+                thead.appendChild(headerRow);
+                table.appendChild(thead);
+
+                // Create table body
+                const tbody = document.createElement('tbody');
+                
                 data.forEach((item, index) => {
-                    const resultItem = document.createElement('div');
-                    resultItem.className = 'card-row';
-
-                    const resultNumber = document.createElement('div');
-                    resultNumber.className = 'card-label';
-                    resultNumber.textContent = `نتیجہ ${index + 1}`;
-
-                    const resultDetails = document.createElement('div');
-                    resultDetails.className = 'card-value';
-                    resultDetails.innerHTML = `
-                        <div><strong>نام:</strong> ${item.name}</div>
-                        <div><strong>شناختی کارڈ:</strong> ${item.cnic}</div>
-                        <div><strong>موبائل نمبر:</strong> ${item.number}</div>
-                        <div><strong>پتہ:</strong> ${item.address}</div>
-                    `;
-
-                    resultItem.appendChild(resultNumber);
-                    resultItem.appendChild(resultDetails);
-                    cardBody.appendChild(resultItem);
+                    const row = document.createElement('tr');
+                    
+                    // Number column
+                    const numberCell = document.createElement('td');
+                    numberCell.textContent = item.number;
+                    row.appendChild(numberCell);
+                    
+                    // Name column
+                    const nameCell = document.createElement('td');
+                    nameCell.textContent = item.name;
+                    row.appendChild(nameCell);
+                    
+                    // CNIC column
+                    const cnicCell = document.createElement('td');
+                    cnicCell.textContent = item.cnic;
+                    row.appendChild(cnicCell);
+                    
+                    // Address column
+                    const addressCell = document.createElement('td');
+                    addressCell.textContent = item.address;
+                    row.appendChild(addressCell);
+                    
+                    // Network column
+                    const networkCell = document.createElement('td');
+                    networkCell.textContent = item.network;
+                    row.appendChild(networkCell);
+                    
+                    tbody.appendChild(row);
                 });
+                
+                table.appendChild(tbody);
+                cardBody.appendChild(table);
             } else {
-                // Display CNIC search results
+                // Display CNIC search results in card format
                 data.forEach((item, index) => {
                     const resultItem = document.createElement('div');
                     resultItem.className = 'card-row';
@@ -628,7 +720,6 @@
 
                     let detailsHTML = `
                         <div><strong>نام:</strong> ${item.NAME || 'نامعلوم'}</div>
-                      <!--  <div><strong>حوالہ نمبر:</strong> ${item.REFNO || 'نامعلوم'}</div>  -->
                         <div><strong>شناختی کارڈ:</strong> ${searchInput}</div>
                     `;
 
@@ -651,7 +742,9 @@
         } else {
             const noResults = document.createElement('div');
             noResults.className = 'no-results';
-            noResults.textContent = 'اس سرچ کے لیے کوئی نتائج نہیں ملے';
+            noResults.textContent = siteType === 'site1' 
+                ? 'اس موبائل نمبر کے لیے کوئی نتائج نہیں ملے' 
+                : 'اس شناختی کارڈ کے لیے کوئی نتائج نہیں ملے';
             cardBody.appendChild(noResults);
         }
 
