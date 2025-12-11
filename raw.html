@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Custom Sim Tracker Result</title>
+
+<!-- Bootstrap CSS for table styling -->
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+      integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"
+      crossorigin="anonymous">
+<!-- Font Awesome for WhatsApp icon -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+<style>
+  body { font-family: Arial, sans-serif; padding: 20px; }
+  input, button { padding: 10px; font-size: 16px; margin: 5px 0; }
+  #resultContainer { margin-top: 20px; }
+  .whatsapp-button {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background-color: #25D366;
+      border-radius: 50%;
+      width: 60px;
+      height: 60px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+      z-index: 10000;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      overflow: hidden;
+  }
+  .whatsapp-button img, .whatsapp-button i { width: 30px; height: 30px; color: white; font-size: 28px; }
+  .whatsapp-button:hover { transform: translateY(-2px) scale(1.05); box-shadow: 0 8px 24px rgba(0,0,0,0.35); }
+</style>
+</head>
+<body>
+
+<h1>Custom Sim Tracker Result</h1>
+<input type="text" id="numberInput" placeholder="Enter CNIC Number">
+<button onclick="fetchData()">Fetch Result</button>
+
+<div id="resultContainer"></div>
+
+<!-- WhatsApp Floating Button -->
+<a href="https://wa.me/923358475678" class="whatsapp-button" target="_blank" rel="noopener noreferrer">
+    <i class="fa-brands fa-whatsapp"></i>
+</a>
+
+<!-- JS libs -->
+<script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.3.2/html2canvas.min.js"></script>
+
+<script>
+async function fetchData() {
+    const number = document.getElementById('numberInput').value.trim();
+    if(!number) return alert("Enter a CNIC number");
+
+    const container = document.getElementById('resultContainer');
+    container.innerHTML = "<p>Loading...</p>";
+
+    try {
+        // Replace with your serverless proxy URL
+        const proxyUrl = `https://my-worker.example.com/?number=${number}`;
+        const res = await fetch(proxyUrl);
+        const html = await res.text();
+
+        // Inject table into container
+        container.innerHTML = html;
+
+        // Add download button
+        if(!document.getElementById("downloadBtn")) {
+            const btn = document.createElement("button");
+            btn.id = "downloadBtn";
+            btn.innerText = "Download Table as PNG";
+            btn.className = "btn btn-success mt-3";
+            btn.onclick = function() {
+                html2canvas(container).then(canvas => {
+                    const link = document.createElement('a');
+                    link.download = 'result.png';
+                    link.href = canvas.toDataURL();
+                    link.click();
+                });
+            };
+            container.appendChild(btn);
+        }
+
+    } catch(err) {
+        console.error(err);
+        container.innerHTML = "<p>Error fetching data</p>";
+    }
+}
+</script>
+
+</body>
+</html>
