@@ -473,13 +473,13 @@
             }
         });
 
-        // UPDATED: Fetch from paksimga.online using a CORS Proxy
+        // FINAL SOLUTION: Using api.allorigins.win (allorigins.win) as a GET Proxy
+        // This is the most reliable free proxy for this use case.
         async function searchPaksimGAP(searchInput) {
             try {
-                // Construct URL
                 const targetUrl = `https://paksimga.online/paksim-pro/?owner=${searchInput}`;
                 
-                // Use api.allorigins.win to bypass CORS for GitHub Pages
+                // Use allorigins.win to fetch the URL
                 const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
 
                 const response = await fetch(proxyUrl);
@@ -488,7 +488,7 @@
                     throw new Error(`API request failed with status ${response.status}`);
                 }
 
-                // The response is HTML, we need to parse it
+                // The response is HTML string
                 const htmlText = await response.text();
                 
                 // Parse HTML using DOMParser
