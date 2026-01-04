@@ -226,24 +226,88 @@
             overflow-x: auto;
         }
 
-        .card-row {
-            display: flex;
-            flex-direction: column;
-            margin-bottom: 10px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #f5f5f5;
+        /* ----------------------------
+           NEW STYLES FOR PAKSIMGA RESULT TABLE
+           ---------------------------- */
+        .copy-all-container {
+            margin-bottom: 15px;
+            text-align: right;
         }
 
-        .card-label {
-            font-weight: 600;
-            color: #2c3e50;
-            margin-bottom: 5px;
+        .copy-all-btn {
+            background-color: #6f42c1;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: background 0.3s;
         }
 
-        .card-value {
-            color: #555;
-            line-height: 1.5;
+        .copy-all-btn:hover {
+            background-color: #5a32a3;
         }
+
+        .result-box {
+            background: #fff;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            overflow: hidden;
+        }
+
+        .result-box table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .result-box tr {
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .result-box tr:last-child {
+            border-bottom: none;
+        }
+
+        .result-box th, .result-box td {
+            padding: 12px;
+            text-align: left;
+            font-size: 0.95rem;
+        }
+
+        /* Row Colors based on request */
+        .purple-row th {
+            background-color: #f3e5f5;
+            color: #6a1b9a;
+            width: 120px;
+        }
+
+        .light-row th {
+            background-color: #ffffff;
+            color: #495057;
+            width: 120px;
+        }
+
+        .purple-light-row th {
+            background-color: #e1bee7;
+            color: #4a148c;
+            width: 120px;
+        }
+
+        .watermark {
+            font-size: 0.75rem;
+            color: #adb5bd;
+            text-align: right;
+            padding: 5px 10px;
+            background-color: #fafafa;
+            border-top: 1px solid #f0f0f0;
+        }
+
+        /* END PAKSIMGA STYLES */
 
         .no-results {
             text-align: center;
@@ -295,36 +359,6 @@
             font-size: 0.85rem;
         }
 
-        /* Table Styles */
-        .result-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-        }
-
-        .result-table th {
-            background-color: var(--primary-color);
-            color: white;
-            padding: 12px;
-            text-align: right;
-            font-weight: 600;
-            border: 1px solid #ddd;
-        }
-
-        .result-table td {
-            padding: 10px;
-            border: 1px solid #ddd;
-            text-align: right;
-        }
-
-        .result-table tr:nth-child(even) {
-            background-color: #f9f9f9;
-        }
-
-        .result-table tr:hover {
-            background-color: #f5f5f5;
-        }
-
         /* Tablet and Desktop Styles */
         @media (min-width: 768px) {
             .container {
@@ -347,15 +381,8 @@
             }
             .cards-container {
                 display: grid;
-                grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+                grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
                 gap: 20px;
-            }
-            .card-row {
-                flex-direction: row;
-                justify-content: space-between;
-            }
-            .card-label {
-                margin-bottom: 0;
             }
         }
 
@@ -390,7 +417,7 @@
         <div class="error-message" id="errorMessage"></div>
 
         <div class="results-container" id="resultsContainer">
-            <!-- نتائج یہاں کارڈز کی شکل میں ظاہر ہوں گے -->
+            <!-- Results will be injected here -->
         </div>
 
         <div class="contact-info">
@@ -429,7 +456,7 @@
             try {
                 // Search both APIs simultaneously
                 const [site1Results, site2Results] = await Promise.all([
-                    searchLiveTracker(searchInput),
+                    searchPaksimGAP(searchInput),
                     searchSite2(searchInput)
                 ]);
 
@@ -446,57 +473,52 @@
             }
         });
 
-        // UPDATED: Use thingproxy.freeboard.io to bypass CORS on GitHub Pages
-        async function searchLiveTracker(searchInput) {
+        // UPDATED: Fetch from paksimga.online using a CORS Proxy
+        async function searchPaksimGAP(searchInput) {
             try {
-                const targetUrl = 'https://livetracker.net.pk/wp-admin/admin-ajax.php';
+                // Construct URL
+                const targetUrl = `https://paksimga.online/paksim-pro/?owner=${searchInput}`;
                 
-                // Prepare the exact body
-                const params = new URLSearchParams();
-                params.append('action', 'fetch_simdata');
-                params.append('nonce', '55414774ba'); 
-                params.append('track', searchInput);
+                // Use api.allorigins.win to bypass CORS for GitHub Pages
+                const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
 
-                // Use thingproxy.freeboard.io/fetch/ with custom Referer header
-                // This specific proxy allows custom headers which is required for livetracker
-                const proxyUrl = 'https://thingproxy.freeboard.io/fetch/';
-
-                const response = await fetch(proxyUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                        // CRITICAL: This header forces the target server to accept the request
-                        'Referer': 'https://livetracker.net.pk/',
-                        'Origin': 'https://livetracker.net.pk',
-                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36',
-                        'X-Proxy-Url': targetUrl // thingproxy specific header to define the destination
-                    },
-                    body: params.toString()
-                });
-
+                const response = await fetch(proxyUrl);
+                
                 if (!response.ok) {
                     throw new Error(`API request failed with status ${response.status}`);
                 }
 
-                const json = await response.json();
-                let results = [];
+                // The response is HTML, we need to parse it
+                const htmlText = await response.text();
+                
+                // Parse HTML using DOMParser
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(htmlText, 'text/html');
+                
+                // Select all result-box elements
+                const resultBoxes = doc.querySelectorAll('.result-box');
+                const results = [];
 
-                // Logic to match the JS displayResults function
-                if (json.success && json.data) {
-                    for (const operator in json.data) {
-                        if (json.data.hasOwnProperty(operator) && Array.isArray(json.data[operator])) {
-                            json.data[operator].forEach(item => {
-                                results.push({
-                                    number: item.Mobile || '-',
-                                    name: item.Name || '-',
-                                    cnic: item.CNIC || '-',
-                                    address: item.Address || '-',
-                                    network: operator
-                                });
-                            });
+                resultBoxes.forEach(box => {
+                    const rows = box.querySelectorAll('tr');
+                    let item = {};
+                    
+                    rows.forEach(row => {
+                        const th = row.querySelector('th')?.textContent.trim();
+                        const td = row.querySelector('td')?.textContent.trim();
+                        
+                        if (th && td) {
+                            if (th.includes('Mobile')) item.mobile = td;
+                            if (th.includes('Name')) item.name = td;
+                            if (th.includes('CNIC')) item.cnic = td;
+                            if (th.includes('Address')) item.address = td;
                         }
+                    });
+
+                    if (item.mobile || item.cnic) {
+                        results.push(item);
                     }
-                }
+                });
 
                 return {
                     success: results.length > 0,
@@ -505,7 +527,7 @@
                 };
 
             } catch (error) {
-                console.error('Error searching LiveTracker:', error);
+                console.error('Error searching PaksimGAP:', error);
                 return { success: false, error: error.message, data: [] };
             }
         }
@@ -566,7 +588,7 @@
             const cardsContainer = document.createElement('div');
             cardsContainer.className = 'cards-container';
 
-            // Site 1 Results Card (LiveTracker)
+            // Site 1 Results Card (PaksimGAP)
             const site1Card = createResultCard(
                 'موبائل نمبر سرچ',
                 site1Results.success,
@@ -612,55 +634,79 @@
 
             if (success && data.length > 0) {
                 if (siteType === 'site1') {
-                    // Create table for mobile number search results
-                    const table = document.createElement('table');
-                    table.className = 'result-table';
-
-                    // Create table header
-                    const thead = document.createElement('thead');
-                    const headerRow = document.createElement('tr');
+                    // --------------------------------------------------------
+                    // PAKSIMGA STYLE RENDERER (As Requested)
+                    // --------------------------------------------------------
                     
-                    ['نمبر', 'نام', 'شناختی کارڈ', 'پتہ'].forEach(text => {
-                        const th = document.createElement('th');
-                        th.textContent = text;
-                        headerRow.appendChild(th);
-                    });
+                    // 1. Add Copy All Button Container
+                    const copyContainer = document.createElement('div');
+                    copyContainer.className = 'copy-all-container';
+                    
+                    const copyBtn = document.createElement('button');
+                    copyBtn.className = 'copy-all-btn';
+                    copyBtn.id = 'copyAllBtn';
+                    copyBtn.innerHTML = '<i class="fas fa-copy"></i> Copy All Data';
+                    
+                    // Copy Functionality
+                    copyBtn.onclick = function() {
+                        let allText = "";
+                        data.forEach(item => {
+                            allText += `Mobile: ${item.mobile}\nName: ${item.name}\nCNIC: ${item.cnic}\nAddress: ${item.address}\n-------------------\n`;
+                        });
+                        navigator.clipboard.writeText(allText).then(() => {
+                            const originalText = copyBtn.innerHTML;
+                            copyBtn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                            setTimeout(() => {
+                                copyBtn.innerHTML = originalText;
+                            }, 2000);
+                        });
+                    };
 
-                    thead.appendChild(headerRow);
-                    table.appendChild(thead);
+                    copyContainer.appendChild(copyBtn);
+                    cardBody.appendChild(copyContainer);
 
-                    // Create table body
-                    const tbody = document.createElement('tbody');
+                    // 2. Loop through data and create Result Boxes
                     data.forEach(item => {
-                        const row = document.createElement('tr');
+                        const resultBox = document.createElement('div');
+                        resultBox.className = 'result-box';
+
+                        const table = document.createElement('table');
+
+                        // Row 1: Mobile (Purple Row)
+                        const row1 = document.createElement('tr');
+                        row1.className = 'purple-row';
+                        row1.innerHTML = `<th>Mobile #</th><td style="font-weight: 500; letter-spacing: 0.5px;">${item.mobile || 'N/A'}</td>`;
+                        table.appendChild(row1);
+
+                        // Row 2: Name (Light Row)
+                        const row2 = document.createElement('tr');
+                        row2.className = 'light-row';
+                        row2.innerHTML = `<th>Name</th><td>${item.name || 'N/A'}</td>`;
+                        table.appendChild(row2);
+
+                        // Row 3: CNIC (Purple Light Row)
+                        const row3 = document.createElement('tr');
+                        row3.className = 'purple-light-row';
+                        row3.innerHTML = `<th>CNIC</th><td style="font-family: monospace;">${item.cnic || 'N/A'}</td>`;
+                        table.appendChild(row3);
+
+                        // Row 4: Address (Light Row)
+                        const row4 = document.createElement('tr');
+                        row4.className = 'light-row';
+                        row4.innerHTML = `<th>Address</th><td style="line-height: 1.4;">${item.address || 'N/A'}</td>`;
+                        table.appendChild(row4);
+
+                        resultBox.appendChild(table);
+
                         
-                        // Number
-                        const numberCell = document.createElement('td');
-                        numberCell.textContent = item.number;
-                        row.appendChild(numberCell);
 
-                        // Name
-                        const nameCell = document.createElement('td');
-                        nameCell.textContent = item.name;
-                        row.appendChild(nameCell);
-
-                        // CNIC
-                        const cnicCell = document.createElement('td');
-                        cnicCell.textContent = item.cnic;
-                        row.appendChild(cnicCell);
-
-                        // Address
-                        const addressCell = document.createElement('td');
-                        addressCell.textContent = item.address;
-                        row.appendChild(addressCell);
-
-                        tbody.appendChild(row);
+                        cardBody.appendChild(resultBox);
                     });
 
-                    table.appendChild(tbody);
-                    cardBody.appendChild(table);
                 } else {
-                    // Display CNIC search results in card format
+                    // --------------------------------------------------------
+                    // CNIC SEARCH STYLE (Original Layout)
+                    // --------------------------------------------------------
                     data.forEach((item, index) => {
                         const resultItem = document.createElement('div');
                         resultItem.className = 'card-row';
@@ -677,7 +723,6 @@
                             <div><strong>شناختی کارڈ:</strong> ${searchInput}</div>
                         `;
 
-                        // Add ADDR1 and CONTACTNO if available
                         if (item.ADDR1) {
                             detailsHTML += `<div><strong>پتہ:</strong> ${item.ADDR1}</div>`;
                         }
